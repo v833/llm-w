@@ -1,10 +1,11 @@
 from langchain.chat_models import init_chat_model
 
 llm = init_chat_model(
-    model="qwen3-vl:8b",
-    model_provider="ollama",
+    model="ollama:qwen3-vl:8b",
     temperature=0.7,
     base_url="http://localhost:11434",
+    timeout=30,
+    max_token=2000,
 )
 
 try:
