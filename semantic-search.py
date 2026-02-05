@@ -21,7 +21,7 @@ vector_store = Chroma(
     persist_directory="./chroma_langchain_db",
 )
 
-vector_store.add_documents(documents=all_splits)
+# vector_store.add_documents(documents=all_splits)
 
 results = vector_store.similarity_search("商人商业强化")
 
