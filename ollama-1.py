@@ -5,7 +5,7 @@ llm = init_chat_model(
     temperature=0.7,
     base_url="http://localhost:11434",
     timeout=30,
-    max_token=2000,
+    max_tokens=2000,
 )
 
 try:
