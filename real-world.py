@@ -4,6 +4,8 @@ from langchain.agents.structured_output import ToolStrategy
 from langchain.tools import tool, ToolRuntime
 from langgraph.checkpoint.memory import InMemorySaver
 from dataclasses import dataclass
+from langchain.agents.middleware import HumanInTheLoopMiddleware
+from langgraph.types import Command
 
 load_dotenv()
 
@@ -55,6 +57,17 @@ agent = create_agent(
     model="deepseek-chat",
     system_prompt=SYSTEM_PROMPT,
     tools=[get_weather_for_location, get_user_location],
+    middleware=[
+        HumanInTheLoopMiddleware(
+            interrupt_on={
+                "get_user_location": True,
+                "get_weather_for_location": {
+                    "allowed_decisions": ["approve", "reject"]
+                },
+            },
+            description_prefix="你是否同意执行以下操作？",
+        )
+    ],
     checkpointer=checkpointer,
     context_schema=Context,
     response_format=ToolStrategy(ResponseFormat),
@@ -70,5 +83,19 @@ result = agent.invoke(
     context=Context(user_id="2"),
 )
 
+# print(result["structured_response"])
 
-print(result["structured_response"])
+for message in result["messages"]:
+    print(message.pretty_print())
+
+    if "__interrupt__" in result:
+        print("__interrupt__")
+        interrupt = result["__interrupt__"][0]
+        for decision in interrupt.value["action_requests"]:
+            print(decision["description"])
+
+result = agent.invoke(
+    Command(resume={"decisions": [{"type": "approve"}]}),  # or "reject"
+    config=config,  # Same thread ID to resume the paused conversation
+    context=Context(user_id="2"),
+)
