@@ -16,7 +16,7 @@ def delete_collection(db_path: str, collection_name: str):
         print(f"删除集合 {collection_name} 失败: {e}")
 
 
-# collections = list_collections("./chroma_langchain_db")
+collections = list_collections("./chroma_langchain_db")
 
-# for collection in collections:
-#     print(collection.name, collection.count())
+for collection in collections:
+    print(collection.name, collection.count())
