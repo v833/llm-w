@@ -1,9 +1,12 @@
 from langchain.agents import create_agent
 from langchain.chat_models import init_chat_model
+from langgraph.checkpoint.memory import InMemorySaver
 import requests, pathlib
 from langchain_community.utilities import SQLDatabase
 from langchain_community.agent_toolkits import SQLDatabaseToolkit
 from dotenv import load_dotenv
+from langchain.agents.middleware import HumanInTheLoopMiddleware
+from langgraph.types import Command
 
 load_dotenv()
 
@@ -65,13 +68,60 @@ Then you should query the schema of the most relevant tables.
     top_k=5,
 )
 
+checkpointer = InMemorySaver()
 
-agent = create_agent(model=llm, tools=tools, system_prompt=system_prompt)
+agent = create_agent(
+    model=llm,
+    tools=tools,
+    system_prompt=system_prompt,
+    middleware=[
+        HumanInTheLoopMiddleware(
+            interrupt_on={"sql_db_query": True},
+            description_prefix="等待用户确认SQL查询",
+        )
+    ],
+    checkpointer=checkpointer,
+)
 
 question = "Which genre on average has the longest tracks?"
+config = {"configurable": {"thread_id": "1"}}
+
 
 for step in agent.stream(
     {"messages": [{"role": "user", "content": question}]},
     stream_mode="values",
+    config=config,
 ):
-    step["messages"][-1].pretty_print()
+    if "__interrupt__" in step:
+        print("__interrupt__")
+        interrupt = step["__interrupt__"][0]
+        for request in interrupt.value["action_requests"]:
+            print(request["description"])
+        user_input = input("\n请输入确认或拒绝(approve/reject): ").strip().lower()
+        if user_input == "approve":
+            command = Command(resume={"decisions": [{"type": "approve"}]})
+        elif user_input == "reject":
+            command = Command(resume={"decisions": [{"type": "reject"}]})
+        else:
+            print("无效输入，请输入 approve 或 reject")
+            continue
+    elif "messages" in step:
+        step["messages"][-1].pretty_print()
+    else:
+        pass
+
+
+for step in agent.stream(
+    command,
+    config=config,
+    stream_mode="values",
+):
+    if "messages" in step:
+        step["messages"][-1].pretty_print()
+    elif "__interrupt__" in step:
+        print("INTERRUPTED:")
+        interrupt = step["__interrupt__"][0]
+        for request in interrupt.value["action_requests"]:
+            print(request["description"])
+    else:
+        pass
