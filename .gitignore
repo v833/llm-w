@@ -1,6 +1,5 @@
 # Environment variables
 .env
-.env.*
 chroma_langchain_db
 # Python
 __pycache__/
