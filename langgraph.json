@@ -1,7 +1,8 @@
 {
   "dependencies": ["."],
   "graphs": {
-    "agent": "./supervisor-agent-1.py:supervisor_agent"
+    "agent": "./supervisor-agent-1.py:supervisor_agent",
+    "doge_agent": "./map_reduce.py:doge_graph"
   },
   "env": ".env"
 }
